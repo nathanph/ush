@@ -1,22 +1,20 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdbool.h>
+#include <unistd.h>
 #include "ush.h"
 
 int main( int argc, const char* argv[] ) {
     char buffer[MAX_STRING_SIZE];
     char commands[MAX_COMMANDS][MAX_STRING_SIZE];
+    pid_t pid;
 
     while (true) {
         displayPrompt();
         getCommand( buffer );
         parseCommand( buffer, commands );
-    
-//        for(int i=0;i<commandCount; i++)
-//        {
-//            printf("%s\n", commands[i]);
-//        }
-    
+        
+        pid = 
     }
 }
 
