@@ -2,6 +2,8 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include <unistd.h>
+#include <sys/types.h>
+#include <sys/wait.h>
 #include "ush.h"
 
 int main( int argc, const char* argv[] ) {
@@ -12,9 +14,9 @@ int main( int argc, const char* argv[] ) {
     while (true) {
         displayPrompt();
         getCommand( buffer );
-        parseCommand( buffer, commands );
+        int commandCount = parseCommand( buffer, commands );
         
-        pid = 
+        forkShell( commands, commandCount );
     }
 }
 
@@ -51,3 +53,35 @@ int parseCommand(char *buffer, char commands[MAX_COMMANDS][MAX_STRING_SIZE]) {
 }
 
 
+void forkShell( char commands[MAX_COMMANDS][MAX_STRING_SIZE], int commandCount ) {
+    pid_t pid = fork();
+    
+    if (pid == -1)
+    {
+        // TODO:: Log borkedness.
+    }
+
+    // Child process.
+    if (pid == 0) 
+    {
+        runCommands( commands, commandCount );
+    }
+    // Parent process.
+    else if( pid > 0)
+    {
+        // Wait for child to end. 
+        int returnStatus;
+        waitpid(pid, &returnStatus, 0);
+    }
+}
+
+void runCommands( char commands[MAX_COMMANDS][MAX_STRING_SIZE], int commandCount ) {
+    // TODO:: Piping stuff.
+    printf("Commands running.\n");
+    for(int i=0; i<commandCount; i++)
+    {
+        printf("%s\n", commands[i]);
+        
+
+    }
+}

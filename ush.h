@@ -9,6 +9,8 @@
 void getCommand(char *buffer);
 void displayPrompt();
 int parseCommand(char *buffer, char commands[MAX_COMMANDS][MAX_STRING_SIZE]);
+void forkShell( char commands[MAX_COMMANDS][MAX_STRING_SIZE], int commandCount );
+void runCommands( char commands[MAX_COMMANDS][MAX_STRING_SIZE], int commandCount );
 
 #endif /* USH_H */
 
