@@ -4,6 +4,9 @@
 #define MAX_STRING_SIZE 100
 #define MAX_COMMANDS    10
 #define MAX_ARGUMENTS   11
+#define MAX_PIPES       2
+#define PIPE_ONE        0
+#define PIPE_TWO        1
 
 #include <string.h>
 

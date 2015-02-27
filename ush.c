@@ -96,11 +96,16 @@ void forkShell( char commands[MAX_COMMANDS][MAX_STRING_SIZE], int commandCount) 
 }
 
 void runCommands( char commands[MAX_COMMANDS][MAX_STRING_SIZE], int commandCount) {
-    char *argv = "";
-    char *envp[] = { NULL };
-
     // TODO:: Piping stuff.
     printf("Commands running.\n");
+    
+
+    int fd[MAX_PIPES][2]; 
+
+    pipe(fd[PIPE_ONE]);
+    pipe(fd[PIPE_TWO]);
+
+    
 
     for(int i=0; i<commandCount; i++)
     {
