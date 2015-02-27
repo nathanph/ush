@@ -4,18 +4,20 @@
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <ctype.h>
 #include "ush.h"
 
 int main( int argc, const char* argv[] ) {
     char buffer[MAX_STRING_SIZE];
     char commands[MAX_COMMANDS][MAX_STRING_SIZE];
-    pid_t pid;
 
     while (true) {
         displayPrompt();
         getCommand( buffer );
-        int commandCount = parseCommand( buffer, commands );
-        
+        int commandCount = parseCommands( buffer, commands );
+
+        // printf("Buffer: %s\n", buffer);
+
         forkShell( commands, commandCount );
     }
 }
@@ -37,7 +39,7 @@ void displayPrompt() {
     printf("ush> ");
 }
 
-int parseCommand(char *buffer, char commands[MAX_COMMANDS][MAX_STRING_SIZE]) {
+int parseCommands(char *buffer, char commands[MAX_COMMANDS][MAX_STRING_SIZE]) {
     char *token;
     int commandCount=0;
 
@@ -45,6 +47,7 @@ int parseCommand(char *buffer, char commands[MAX_COMMANDS][MAX_STRING_SIZE]) {
 
     while (token != NULL)
     {
+        token = trim_whitespace(token);
         strcpy(commands[commandCount++], token);
         token = strtok(NULL, "|");
     }
@@ -52,36 +55,114 @@ int parseCommand(char *buffer, char commands[MAX_COMMANDS][MAX_STRING_SIZE]) {
     return commandCount;
 }
 
+int parseArguments(char *buffer, char *arguments[MAX_ARGUMENTS]) {
+    char *token;
+    int argumentCount=0;
 
-void forkShell( char commands[MAX_COMMANDS][MAX_STRING_SIZE], int commandCount ) {
-    pid_t pid = fork();
+    token = strtok(buffer, " ");
+
+    while (token != NULL)
+    {
+        arguments[argumentCount++] = token;
+
+        token = strtok(NULL, " ");
+    }
+
+    arguments[argumentCount] = NULL;
     
+    return argumentCount;
+}
+
+void forkShell( char commands[MAX_COMMANDS][MAX_STRING_SIZE], int commandCount) {
+    pid_t pid = fork();
+
     if (pid == -1)
     {
         // TODO:: Log borkedness.
     }
 
     // Child process.
-    if (pid == 0) 
+    if (pid == 0)
     {
         runCommands( commands, commandCount );
     }
     // Parent process.
     else if( pid > 0)
     {
-        // Wait for child to end. 
+        // Wait for child to end.
         int returnStatus;
         waitpid(pid, &returnStatus, 0);
     }
 }
 
-void runCommands( char commands[MAX_COMMANDS][MAX_STRING_SIZE], int commandCount ) {
+void runCommands( char commands[MAX_COMMANDS][MAX_STRING_SIZE], int commandCount) {
+    char *argv = "";
+    char *envp[] = { NULL };
+
     // TODO:: Piping stuff.
     printf("Commands running.\n");
+
     for(int i=0; i<commandCount; i++)
     {
-        printf("%s\n", commands[i]);
-        
+        char *arguments[MAX_ARGUMENTS];
+        int argumentCount = parseArguments( commands[i], arguments );
 
+        pid_t pid = fork();
+
+        if (pid == -1)
+        {
+            // TODO:: Log borkedness.
+        }
+        if (pid == 0)
+        {
+            print_exec_args( arguments, argumentCount );
+            
+            execvp(commands[i], arguments);
+            perror("execvp");
+        }
+        else if (pid > 0)
+        {
+            int returnStatus;
+            waitpid(pid, &returnStatus, 0);
+        }
     }
+}
+
+void print_exec_args(char *arguments[MAX_ARGUMENTS], int argumentCount) {
+    printf("Executing: %s\n", arguments[0]);
+    printf("Arguments: ");
+    for (int i=0; i<argumentCount; i++)
+    {
+        printf("%s ", arguments[i]);
+    }
+    printf("\n");
+}
+
+void print_hex(const char *s)
+{
+    while(*s)
+        printf("%02x", (unsigned int) *s++);
+    printf("%02x", (unsigned int) *s++);
+
+    printf("\n");
+}
+
+char * trim_whitespace(char *str)
+{
+    char *end;
+
+    // Trim leading space
+    while(isspace(*str)) str++;
+
+    if(*str == 0)  // All spaces?
+    return str;
+
+    // Trim trailing space
+    end = str + strlen(str) - 1;
+    while(end > str && isspace(*end)) end--;
+
+    // Write new null terminator
+    *(end+1) = 0;
+
+    return str;
 }
