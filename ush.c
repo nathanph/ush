@@ -19,6 +19,7 @@ int main( int argc, const char* argv[] ) {
         // printf("Buffer: %s\n", buffer);
 
         forkShell( commands, commandCount );
+
     }
 }
 
@@ -96,16 +97,11 @@ void forkShell( char commands[MAX_COMMANDS][MAX_STRING_SIZE], int commandCount) 
 }
 
 void runCommands( char commands[MAX_COMMANDS][MAX_STRING_SIZE], int commandCount) {
-    // TODO:: Piping stuff.
-    printf("Commands running.\n");
+    // printf("Commands running.\n");
     
+    int fd[commandCount-1][2];
 
-    int fd[MAX_PIPES][2]; 
-
-    pipe(fd[PIPE_ONE]);
-    pipe(fd[PIPE_TWO]);
-
-    
+    open_pipes( fd , commandCount );
 
     for(int i=0; i<commandCount; i++)
     {
@@ -120,16 +116,70 @@ void runCommands( char commands[MAX_COMMANDS][MAX_STRING_SIZE], int commandCount
         }
         if (pid == 0)
         {
-            print_exec_args( arguments, argumentCount );
+            if(commandCount != 1)
+            {
+                if(i==0)
+                {
+                    // Set standard out to write to pipe for next command.
+                    dup2(fd[i][PIPE_IN], STD_OUT);
+                    close(fd[i][PIPE_OUT]);
+                }
+                else if(i==commandCount-1)
+                {
+                    // Set standard in to read from pipe out of previous command.
+                    dup2(fd[i-1][PIPE_OUT], STD_IN);
+                    close(fd[i-1][PIPE_IN]);
+                }
+                else
+                {
+                    // Set standard in to read from pipe out of previous command.
+                    dup2(fd[i-1][PIPE_OUT], STD_IN);
+                    close(fd[i-1][PIPE_IN]);
+                    // Set standard out to write to pipe for next command.
+                    dup2(fd[i][PIPE_IN], STD_OUT);
+                    close(fd[i][PIPE_OUT]);
+                }
+            }
+
+            // print_exec_args( arguments, argumentCount );
             
             execvp(commands[i], arguments);
             perror("execvp");
         }
         else if (pid > 0)
         {
-            int returnStatus;
-            waitpid(pid, &returnStatus, 0);
+//            int returnStatus;
+//            waitpid(pid, &returnStatus, 0);
         }
+    }
+
+    close_pipes( fd, commandCount);
+
+    // Wait for all children processes to exit.
+    while (wait(NULL) > 0) ;
+}
+
+void open_pipes( int fd[][PIPE_SIZE], int commandCount ) {
+    for(int i=0; i<commandCount-1; i++)
+    {
+        pipe(fd[i]);
+    }
+}
+
+void close_pipes( int fd[][PIPE_SIZE], int commandCount ) {
+    for(int i=0; i<commandCount-1; i++)
+    {
+        close(fd[i][PIPE_OUT]);
+        close(fd[i][PIPE_IN]);
+    }
+}
+
+void print_pipes( int fd[][PIPE_SIZE], int commandCount ) {
+    for(int i=0; i<commandCount-1; i++) 
+    {
+        printf("Pipe %i:\n", i);
+        printf(" -PIPE_IN:  %i\n", fd[i][PIPE_IN]);
+        printf(" -PIPE_OUT: %i\n", fd[i][PIPE_OUT]);
     }
 }
 
