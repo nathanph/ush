@@ -5,6 +5,7 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <ctype.h>
+#include <stdlib.h>
 #include "ush.h"
 
 int main( int argc, const char* argv[] ) {
@@ -100,6 +101,7 @@ void runCommands( char commands[MAX_COMMANDS][MAX_STRING_SIZE], int commandCount
     // printf("Commands running.\n");
     
     int fd[commandCount-1][2];
+    int firstPid=0;
 
     open_pipes( fd , commandCount );
 
@@ -126,6 +128,7 @@ void runCommands( char commands[MAX_COMMANDS][MAX_STRING_SIZE], int commandCount
                 }
                 else if(i==commandCount-1)
                 {
+                    exit(EXIT_FAILURE);
                     // Set standard in to read from pipe out of previous command.
                     dup2(fd[i-1][PIPE_OUT], STD_IN);
                     close(fd[i-1][PIPE_IN]);
@@ -148,6 +151,23 @@ void runCommands( char commands[MAX_COMMANDS][MAX_STRING_SIZE], int commandCount
         }
         else if (pid > 0)
         {
+            if(firstPid==0)
+            {
+                firstPid=pid;
+            }
+
+            if(i==commandCount-1)
+            {
+                // Set standard in to read from pipe out of previous command.
+                dup2(fd[i-1][PIPE_OUT], STD_IN);
+                close(fd[i-1][PIPE_IN]);
+                setpgid( 0, firstPid);
+
+                execvp(commands[i], arguments);
+                perror("execvp");
+            }
+
+            setpgid( pid, firstPid);
 //            int returnStatus;
 //            waitpid(pid, &returnStatus, 0);
         }
